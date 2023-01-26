@@ -22,25 +22,8 @@ knitr:
 
 Display machine information for reproducibility:
 ```{r}
-#| eval: false
+#| eval: true
 sessionInfo()
-
-R version 4.2.2 (2022-10-31)
-Platform: aarch64-apple-darwin20 (64-bit)
-Running under: macOS Monterey 12.3.1
-
-Matrix products: default
-LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
-
-locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
-
-attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base     
-
-loaded via a namespace (and not attached):
-[1] compiler_4.2.2 tools_4.2.2    knitr_1.41     xfun_0.36 
-
 ```
 
 ## Q1. Git/GitHub
@@ -147,18 +130,37 @@ zcat <~/mimic/core/admissions.csv.gz | head -4
 ```
 How many rows are in the data file - 
 ```{bash}
+#| eval: true
 zcat <~/mimic/core/admissions.csv.gz | wc -l
 ```
 This includes the header as well in the dataset, the number of data records would be 523740.
 
 How many unique patients (identified by `subject_id`) are in this data file?
 ```{bash}
+#| eval: true
 zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $1}' | sort | uniq | wc -l 
 ```
 
 The unique patients will be 25678 as the above script also includes `subject_id`.
 
 6. What are the possible values taken by each of the variable `admission_type`, `admission_location`, `insurance`, and `ethnicity`? Also report the count for each unique value of these variables. (Hint: combine Linux commands `zcat`, `head`/`tail`, `awk`, `uniq -c`, `wc`, and so on.)
+
+Possible values taken by `admission_type` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $6}' | sort | uniq -c
+```
+Possible values taken by `admission_location` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $7}' | sort | uniq -c
+```
+Possible values taken by `insurance` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $9}' | sort | uniq -c
+```
+Possible values taken by `ethnicity` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $12}' | sort | uniq -c
+```
 
 ## Q4. Who's popular in Price and Prejudice
 
@@ -167,16 +169,25 @@ The unique patients will be 25678 as the above script also includes `subject_id`
 #| eval: false
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 ```
-Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git. Complete the following loop to tabulate the number of times each of the four characters is mentioned using Linux commands.
+Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git:
+
+File added to .gitignore. `wget` is a free utility for non-interactive download of files from the Web. 
+`-nc` means 'no-clobber', when `-nc` is specified, downloading the same file 
+in the same directory will be refused.
+
+
+Complete the following loop to tabulate the number of times each of the four characters is mentioned using Linux commands.
 ```{bash}
-#| eval: false
+#| eval: true
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 for char in Elizabeth Jane Lydia Darcy
 do
   echo $char:
   # some bash commands here
+  cat pg42671.txt | grep -o $char | wc -l
 done
 ```
+From above we can see character Elizabeth has been mentioned the most. 
 
 2. What's the difference between the following two commands?
 ```{bash}
@@ -189,6 +200,8 @@ and
 echo 'hello, world' >> test2.txt
 ```
 
+In the command `>` the file is opened in overwrite mode, whereas in `>>` the file is opened in append mode. If we echoed more lines into test2 or the same command more times the number of lines in test2 would increase as it is in append mode. 
+
 3. Using your favorite text editor (e.g., `vi`), type the following and save the file as `middle.sh`:
 ```{bash eval=FALSE}
 #!/bin/sh
@@ -198,7 +211,7 @@ head -n "$2" "$1" | tail -n "$3"
 ```
 Using `chmod` to make the file executable by the owner, and run
 ```{bash}
-#| eval: false
+#| eval: true
 ./middle.sh pg42671.txt 20 5
 ```
 Explain the output. Explain the meaning of `"$1"`, `"$2"`, and `"$3"` in this shell script. Why do we need the first line of the shell script?
