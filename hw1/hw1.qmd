@@ -221,3 +221,117 @@ The output is the 16th line to 20th line of the novel pg42671.txt. In this comma
 ## Q5. More fun with Linux
 
 Try following commands in Bash and interpret the results: `cal`, `cal 2021`, `cal 9 1752` (anything unusual?), `date`, `hostname`, `arch`, `uname -a`, `uptime`, `who am i`, `who`, `w`, `id`, `last | head`, `echo {con,pre}{sent,fer}{s,ed}`, `time sleep 5`, `history | tail`.
+
+```{bash}
+#| eval: true
+cal
+```
+
+The above command shows the calendar of this month. 
+
+```{bash}
+#| eval: true
+cal 2021
+```
+
+The above command shows the calendar of every month in 2021. 
+
+```{bash}
+#| eval: true
+cal 9 1752
+```
+The above calendar shows september 1752. The dates from 2 and 14 are missing in this calendar. 
+
+```{bash}
+#| eval: true
+date
+```
+
+This command shows the complete date with time and day when it was executed. 
+
+```{bash}
+#| eval: true
+hostname
+```
+
+This shows the computer's hostname. 
+
+```{bash}
+#| eval: true
+arch
+```
+
+This is a M1 chip macbook using arm64 architecture as shown in above command. 
+
+```{bash}
+#| eval: true
+uname -a
+```
+
+This command displays all information on the system such as machine, hostname, and architecture name.
+
+```{bash}
+#| eval: true
+uptime
+```
+
+It shows how long the system has been active, and the number of users and load averages.  
+
+```{bash}
+#| eval: true
+who am i
+```
+
+The command shows the active user on the system.
+
+```{bash}
+#| eval: true
+who 
+```
+
+This command shows the login name of the users, the terminal line numbers, the login time of the users in to system, and the remote host name of the user.
+
+```{bash}
+#| eval: true
+w
+```
+
+This command tells about the users logged in and their activity on the system. It also displays the CPU time. 
+
+```{bash}
+#| eval: true
+id
+```
+
+This command displays information such as user ID, user name, group ID.
+
+```{bash}
+#| eval: true
+last | head
+```
+This command displays the last 10 logged in users into this system.
+
+```{bash}
+#| eval: true
+echo {con,pre}{sent,fer}{s,ed}
+```
+
+The command echo is like a print statement displaying what we want in the terminal. It displays all the texts formed by these 8 combinations. 
+
+```{bash}
+#| eval: true
+time sleep 5
+```
+
+Sleep is like a break for 5 seconds. Time displays how much time it takes to run a command, which is 5s over here. 
+
+```{bash}
+#| eval: true
+history | tail
+```
+
+This works in my terminal, giving the last 10 commands executed in the history. 
+   
+
+
+
