@@ -1,7 +1,7 @@
 ---
 title: "Biostat 203B Homework 1"
 subtitle: Due Jan 27 @ 11:59PM
-author: Shruti Mohanty 705494615
+author: Shruti Mohanty, 705494615
 format:
   html:
     theme: cosmo
@@ -22,7 +22,7 @@ knitr:
 
 Display machine information for reproducibility:
 ```{r}
-#| eval: false
+#| eval: true
 sessionInfo()
 ```
 
@@ -30,19 +30,26 @@ sessionInfo()
 
 **No handwritten homework reports are accepted for this course.** We work with Git and GitHub. Efficient and abundant use of Git, e.g., frequent and well-documented commits, is an important criterion for grading your homework.
 
-1. Apply for the [Student Developer Pack](https://education.github.com/pack) at GitHub using your UCLA email. You'll get GitHub Pro account for free (unlimited public and private repositories).
+1. Apply for the [Student Developer Pack](https://education.github.com/pack) at GitHub using your UCLA email. You'll get GitHub Pro account for free (unlimited public and private repositories). **Done**
 
-2. Create a **private** repository `biostat-203b-2023-winter` and add `Hua-Zhou` and `tomokiokuno0528` as your collaborators with write permission.
+2. Create a **private** repository `biostat-203b-2023-winter` and add `Hua-Zhou` and `tomokiokuno0528` as your collaborators with write permission. **Done**
 
-3. Top directories of the repository should be `hw1`, `hw2`, ... Maintain two branches `master` and `develop`. The `develop` branch will be your main playground, the place where you develop solution (code) to homework problems and write up report. The `master` branch will be your presentation area. Submit your homework files (Quarto file `qmd`, `html` file converted by Quarto, all code and extra data sets to reproduce results) in `main` branch.
+3. Top directories of the repository should be `hw1`, `hw2`, ... Maintain two branches `master` and `develop`. The `develop` branch will be your main playground, the place where you develop solution (code) to homework problems and write up report. The `master` branch will be your presentation area. Submit your homework files (Quarto file `qmd`, `html` file converted by Quarto, all code and extra data sets to reproduce results) in `main` branch. **Done**
 
-4. After each homework due date, course reader and instructor will check out your `master` branch for grading. Tag each of your homework submissions with tag names `hw1`, `hw2`, ... Tagging time will be used as your submission time. That means if you tag your `hw1` submission after deadline, penalty points will be deducted for late submission.
+4. After each homework due date, course reader and instructor will check out your `master` branch for grading. Tag each of your homework submissions with tag names `hw1`, `hw2`, ... Tagging time will be used as your submission time. That means if you tag your `hw1` submission after deadline, penalty points will be deducted for late submission. **Done**
 
-5. After this course, you can make this repository public and use it to demonstrate your skill sets on job market.
+5. After this course, you can make this repository public and use it to demonstrate your skill sets on job market. **Okay!**
 
 ## Q2. Data ethics training
 
 This exercise (and later in this course) uses the [MIMIC-IV data](https://mimic-iv.mit.edu), a freely accessible critical care database developed by the MIT Lab for Computational Physiology. Follow the instructions at <https://mimic.mit.edu/docs/gettingstarted/> to (1) complete the CITI `Data or Specimens Only Research` course and (2) obtain the PhysioNet credential for using the MIMIC-IV data. Display the verification links to your completion report and completion certificate here. (Hint: The CITI training takes a couple hours and the PhysioNet credentialing takes a couple days; do not leave it to the last minute.)
+
+The links to my report and certificate are given below. 
+
+[Completion Report- https://www.citiprogram.org/verify/?k4aee451c-e431-497c-9395-4edd13dfe70e-53712974](https://www.citiprogram.org/verify/?k4aee451c-e431-497c-9395-4edd13dfe70e-53712974)
+
+[Completion Certificate- https://www.citiprogram.org/verify/?we2edbf96-4d4b-46dc-a6c1-efd4f7d2294c-53712974](https://www.citiprogram.org/verify/?we2edbf96-4d4b-46dc-a6c1-efd4f7d2294c-53712974)
+
 
 ## Q3. Linux Shell Commands
 
@@ -53,25 +60,107 @@ ls -l ~/mimic
 ```
 Please, do **not** put these data files into Git; they are big. Do **not** copy them into your directory. Do **not** decompress the gz data files. These create unnecessary big files on storage and are not big data friendly practices. Just read from the data folder `~/mimic` directly in following exercises. 
 
+**Done**.
+
+Output is displayed below. 
+```{bash}
+#| eval: true
+ls -l ~/mimic
+ls ~/mimic
+```
+
   Use Bash commands to answer following questions.
 
 2. Display the contents in the folders `core`, `hosp`, `icu`. Why are these data files distributed as `.csv.gz` files instead of `.csv` (comma separated values) files? Read the page <https://mimic.mit.edu/docs/iv/> to understand what's in each folder.
 
+Displaying the contents in folder `core`- 
+```{bash}
+#| eval: true
+ls -l ~/mimic/core
+```
+Displaying the contents in folder `hosp`- 
+```{bash}
+#| eval: true
+ls -l ~/mimic/hosp
+```
+Displaying the contents in folder `icu`- 
+```{bash}
+#| eval: true
+ls -l ~/mimic/icu
+```
+Why are these data files distributed as .csv.gz files instead of .csv (comma separated values) files - .csv.gz files are compressed versions of .csv files. The main advantages of compression are reductions in storage hardware, data transmission time, and communication bandwidth. This can result in significant cost savings. Compressed files require significantly less storage capacity than uncompressed files, meaning a significant decrease in expenses for storage.
+Read the documentation in <https://mimic.mit.edu/docs/iv/> to understand what's in each folder. 
+
 3. Briefly describe what bash commands `zcat`, `zless`, `zmore`, and `zgrep` do.
+
+Below is an overview of what the bash commands do.
+
+* `zcat`:It uncompresses either a list of files on the command line or its standard input and writes the uncompressed data on standard output. It allows the user to expand and view a compressed file without uncompressing that file.
+* `zless`: It is a filter which allows paginating a compressed file and examination of compressed or plain text files one screenful at a time on a soft-copy terminal. It allows us to view files as a single file when switching between lines.   
+* `zmore`:It is a filter which allows paginating a compressed file examination of compressed or plain text files one screenful at a time on a soft-copy terminal. It allows us to view files as a single file separated by lines.  
+* `zgrep`: Works the same way as grep but for compressed files. It allows us to search inside a compressed file without uncompressing it.
 
 4. What's the output of the following bash script?
 ```{bash}
-#| eval: false
+#| eval: true
 for datafile in ~/mimic/core/*.gz
 do
   ls -l $datafile
 done
 ```
+The above bash script displays all the compressed .gz files present under the folder core in a long format - which corresponds to admissions, patients, and transfers. 
+
 Display the number of lines in each data file using a similar loop.
+```{bash}
+#| eval: true
+for datafile in ~/mimic/core/*.gz
+do
+  echo $datafile
+  zcat <$datafile | wc -l
+done
+```
+wc displays the number of lines in each datafile. 
 
 5. Display the first few lines of `admissions.csv.gz`. How many rows are in this data file? How many unique patients (identified by `subject_id`) are in this data file? (Hint: combine Linux commands `zcat`, `head`/`tail`, `awk`, `sort`, `uniq`, `wc`, and so on.)
 
+To display the first few lines of `admissions.csv.gz` - 
+```{bash}
+#| eval: true
+zcat <~/mimic/core/admissions.csv.gz | head -4
+```
+How many rows are in the data file - 
+```{bash}
+#| eval: true
+zcat <~/mimic/core/admissions.csv.gz | wc -l
+```
+This includes the header as well in the dataset, the number of data records would be 523740.
+
+How many unique patients (identified by `subject_id`) are in this data file?
+```{bash}
+#| eval: true
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $1}' | sort | uniq | wc -l 
+```
+
+The unique patients will be 25678 as the above script also includes `subject_id`.
+
 6. What are the possible values taken by each of the variable `admission_type`, `admission_location`, `insurance`, and `ethnicity`? Also report the count for each unique value of these variables. (Hint: combine Linux commands `zcat`, `head`/`tail`, `awk`, `uniq -c`, `wc`, and so on.)
+
+Possible values taken by `admission_type` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $6}' | sort | uniq -c
+```
+Possible values taken by `admission_location` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $7}' | sort | uniq -c
+```
+Possible values taken by `insurance` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $9}' | sort | uniq -c
+```
+Possible values taken by `ethnicity` along with its count are listed below- 
+```{bash}
+zcat <~/mimic/core/admissions.csv.gz | awk -F',' '{print $12}' | sort | uniq -c
+```
 
 ## Q4. Who's popular in Price and Prejudice
 
@@ -80,16 +169,25 @@ Display the number of lines in each data file using a similar loop.
 #| eval: false
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 ```
-Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git. Complete the following loop to tabulate the number of times each of the four characters is mentioned using Linux commands.
+Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git:
+
+File added to .gitignore. `wget` is a free utility for non-interactive download of files from the Web. 
+`-nc` means 'no-clobber', when `-nc` is specified, downloading the same file 
+in the same directory will be refused.
+
+
+Complete the following loop to tabulate the number of times each of the four characters is mentioned using Linux commands.
 ```{bash}
-#| eval: false
+#| eval: true
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 for char in Elizabeth Jane Lydia Darcy
 do
   echo $char:
   # some bash commands here
+  cat pg42671.txt | grep -o $char | wc -l
 done
 ```
+From above we can see character Elizabeth has been mentioned the most. 
 
 2. What's the difference between the following two commands?
 ```{bash}
@@ -102,7 +200,9 @@ and
 echo 'hello, world' >> test2.txt
 ```
 
-3. Using your favorite text editor (e.g., `vi`), type the following and save the file as `middle.sh`:
+In the command `>` the file is opened in overwrite mode, whereas in `>>` the file is opened in append mode. If we echoed more lines into test2 or the same command more times the number of lines in test2 would increase as it is in append mode. 
+
+3. Using your favorite text editor (e.g., `vi`), type the following and save the file as `middle.sh`: **Done**
 ```{bash eval=FALSE}
 #!/bin/sh
 # Select lines from the middle of a file.
@@ -111,11 +211,127 @@ head -n "$2" "$1" | tail -n "$3"
 ```
 Using `chmod` to make the file executable by the owner, and run
 ```{bash}
-#| eval: false
+#| eval: true
 ./middle.sh pg42671.txt 20 5
 ```
 Explain the output. Explain the meaning of `"$1"`, `"$2"`, and `"$3"` in this shell script. Why do we need the first line of the shell script?
 
+The output is the 16th line to 20th line of the novel pg42671.txt. In this command `"$1` is pg42671.txt, `"$2` is 20 and `"$3` is 5. We are telling the command the end line, and how many lines to read before that. The first line is needed to tell the system to use `sh` to run the command in bash shell. 
+
 ## Q5. More fun with Linux
 
 Try following commands in Bash and interpret the results: `cal`, `cal 2021`, `cal 9 1752` (anything unusual?), `date`, `hostname`, `arch`, `uname -a`, `uptime`, `who am i`, `who`, `w`, `id`, `last | head`, `echo {con,pre}{sent,fer}{s,ed}`, `time sleep 5`, `history | tail`.
+
+```{bash}
+#| eval: true
+cal
+```
+
+The above command shows the calendar of this month. 
+
+```{bash}
+#| eval: true
+cal 2021
+```
+
+The above command shows the calendar of every month in 2021. 
+
+```{bash}
+#| eval: true
+cal 9 1752
+```
+The above calendar shows september 1752. The dates from 2 and 14 are missing in this calendar. 
+
+```{bash}
+#| eval: true
+date
+```
+
+This command shows the complete date with time and day when it was executed. 
+
+```{bash}
+#| eval: true
+hostname
+```
+
+This shows the computer's hostname. 
+
+```{bash}
+#| eval: true
+arch
+```
+
+This is a M1 chip macbook using arm64 architecture as shown in above command. 
+
+```{bash}
+#| eval: true
+uname -a
+```
+
+This command displays all information on the system such as machine, hostname, and architecture name.
+
+```{bash}
+#| eval: true
+uptime
+```
+
+It shows how long the system has been active, and the number of users and load averages.  
+
+```{bash}
+#| eval: true
+who am i
+```
+
+The command shows the active user on the system.
+
+```{bash}
+#| eval: true
+who 
+```
+
+This command shows the login name of the users, the terminal line numbers, the login time of the users in to system, and the remote host name of the user.
+
+```{bash}
+#| eval: true
+w
+```
+
+This command tells about the users logged in and their activity on the system. It also displays the CPU time. 
+
+```{bash}
+#| eval: true
+id
+```
+
+This command displays information such as user ID, user name, group ID.
+
+```{bash}
+#| eval: true
+last | head
+```
+This command displays the last 10 logged in users into this system.
+
+```{bash}
+#| eval: true
+echo {con,pre}{sent,fer}{s,ed}
+```
+
+The command echo is like a print statement displaying what we want in the terminal. It displays all the texts formed by these 8 combinations. 
+
+```{bash}
+#| eval: true
+time sleep 5
+```
+
+Sleep is like a break for 5 seconds. Time displays how much time it takes to run a command, which is 5s over here. 
+
+```{bash}
+#| eval: true
+history | tail
+```
+
+This works in my terminal, giving the last 10 commands executed in the history. 
+   
+
+
+
