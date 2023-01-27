@@ -202,7 +202,7 @@ echo 'hello, world' >> test2.txt
 
 In the command `>` the file is opened in overwrite mode, whereas in `>>` the file is opened in append mode. If we echoed more lines into test2 or the same command more times the number of lines in test2 would increase as it is in append mode. 
 
-3. Using your favorite text editor (e.g., `vi`), type the following and save the file as `middle.sh`:
+3. Using your favorite text editor (e.g., `vi`), type the following and save the file as `middle.sh`: **Done**
 ```{bash eval=FALSE}
 #!/bin/sh
 # Select lines from the middle of a file.
@@ -215,6 +215,8 @@ Using `chmod` to make the file executable by the owner, and run
 ./middle.sh pg42671.txt 20 5
 ```
 Explain the output. Explain the meaning of `"$1"`, `"$2"`, and `"$3"` in this shell script. Why do we need the first line of the shell script?
+
+The output is the 16th line to 20th line of the novel pg42671.txt. In this command `"$1` is pg42671.txt, `"$2` is 20 and `"$3` is 5. We are telling the command the end line, and how many lines to read before that. The first line is needed to tell the system to use `sh` to run the command in bash shell. 
 
 ## Q5. More fun with Linux
 
