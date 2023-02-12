@@ -1,6 +1,6 @@
 ---
 title: "Biostat 203B Homework 2"
-subtitle: Due Feb 10 @ 11:59PM
+subtitle: Due Feb 15 @ 11:59PM
 author: Shruti Mohanty 705494615
 format:
   html:
@@ -22,7 +22,7 @@ knitr:
 
 Display machine information for reproducibility:
 ```{r}
-#| eval: false
+#| eval: true
 sessionInfo()
 ```
 
@@ -55,6 +55,37 @@ There are quite a few utilities in R for reading plain text data files. Let us t
 
 Which function is fastest? Is there difference in the (default) parsed data types? (Hint: R function `system.time` measures run times.)
 
+**Solution :** 
+From the run times below we see that the function `fread` is the fastest, and `read.csv` is the slowest. system.time was used to measure the execution speed of these commands. 
+```{r}
+#| eval: true
+system.time(adm_base <- read.csv(str_c(mimic_path,"/core/admissions.csv.gz")))
+```
+```{r}
+#| eval: true
+system.time(adm_tidy <- read_csv(str_c(mimic_path,"/core/admissions.csv.gz")))
+```
+
+```{r}
+#| eval: true
+system.time(adm_table <- fread(str_c(mimic_path,"/core/admissions.csv.gz")))
+```
+
+```{r}
+
+str(adm_base)
+```
+```{r}
+
+str(adm_tidy)
+```
+
+```{r}
+
+str(adm_table)
+```
+`str` was used to compare their datatypes. In the default parsed data types there are some differences. We can see in read.csv and fread, it reads some of the columns like subject_id as int, but read_csv read it as numeric. time was read as col_datetime in read_csv, and as POSIXct in read.csv and fread. 
+
 For later questions, we stick to the `read_csv` in tidyverse.
 
 ## Q2. ICU stays
@@ -73,9 +104,36 @@ system(
 
 1. Import `icustatys.csv.gz` as a tibble `icustays_tble`. 
 
-2. How many unique `subject_id`? Can a `subject_id` have multiple ICU stays? 
+**Solution:** 
+```{r}
+#| eval: true
+
+icustays_tble <- read_csv(str_c(mimic_path, "/icu/icustays.csv.gz"))
+
+```
+
+2. How many unique `subject_id`? Can a `subject_id` have multiple ICU stays?
+
+**Solution :**
+```{r}
+#| eval: true
+
+nrow(distinct(icustays_tble, subject_id))
+
+```
+
+The number of unique subject_ids are 53150, but the total number of rows are 76540. So, there are subject_ids who would have had multiple ICU stays. 
 
 3. Summarize the number of ICU stays per `subject_id` by graphs. 
+
+**Solution :**
+```{r}
+#| eval: true
+
+nrow(distinct(icustays_tble, subject_id))
+
+```
+
 
 4. For each `subject_id`, let's only keep the first ICU stay in the tibble `icustays_tble`. (Hint: `slice_min` and `slice_max` may take long. Think alternative ways to achieve the same function.)
 
