@@ -249,8 +249,16 @@ ggplot(data = admissions_tble) +
   stat_count(mapping = aes(x = hour(admittime))) +
   labs(x = "Admission hour")
 ```
-    - admission minute (anything unusual?)  
+    - admission minute (anything unusual?)  - Its unusual that the admit time is the highest in the start of every hour and is gradually decreasing with peaks every 15 mins. This also might have something to do with the hospital rules. 
+```{r}
+#| eval: true
+ggplot(data = admissions_tble) + 
+  stat_count(mapping = aes(x = minute(admittime))) +
+  labs(x = "Admission Minute")
+```
     - length of hospital stay (anything unusual?)   
+    
+    
     
 ## Q4. `patients` data
 
@@ -268,7 +276,46 @@ system(
 
 1. Import `patients.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/patients/>) as a tibble `patients_tble` and only keep the patients who have a match in `icustays_tble` (according to `subject_id`).
 
+**Solution:** It can be imported as a tibble as in previous questions and we can use a semi_join to keep the matching subject_id only.
+
+
+```{r}
+#| eval: true
+patients_tble <- read_csv(str_c(mimic_path, "/core/patients.csv.gz"))
+patients_tble <- patients_tble %>%
+  arrange(subject_id) %>%
+  semi_join(icustays_tble, by = c("subject_id")) %>%
+  print(width = Inf)
+```
+
+
 2. Summarize variables `gender` and `anchor_age`, and explain any patterns you see.
+
+**Solution:** The following is a plot for gender. We can see that the number of male patients is more than female patients over here. 
+```{r}
+#| eval: true
+patients_tble$gender %>% 
+  as_tibble() %>% 
+  rename(gender = value) %>% 
+  ggplot() + 
+  geom_bar(mapping = aes(x = gender)) 
+```
+The following is the bar plot for age. We can see a lot of patients of the age 91 here. Maybe the record in hospital has all patients of age 91 and older as 91, which explains the high distribution. The median age of patients admitted to the hospital is 65, and the mean is 63.
+```{r}
+#| eval: true
+patients_tble$anchor_age %>% 
+  as_tibble() %>% 
+  rename(anchor_age = value) %>% 
+  ggplot() + 
+  geom_bar(mapping = aes(x = anchor_age))
+patients_tble$anchor_age %>% 
+  mean() 
+patients_tble$anchor_age %>% 
+  median()
+patients_tble$anchor_age %>% 
+  max()
+```
+
 
 ## Q5. Lab results
 
