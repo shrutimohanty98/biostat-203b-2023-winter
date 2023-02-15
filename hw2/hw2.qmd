@@ -205,7 +205,52 @@ admissions_tble <- admissions_tble %>%
     - admission week day  
     - admission hour (anything unusual?)  
     - admission minute (anything unusual?)  
-    - length of hospital stay (anything unusual?)    
+    - length of hospital stay (anything unusual?)  
+
+**Solution:** Bar plots have been used to summarize these variables
+    
+    - admission year
+
+```{r}
+#| eval: true
+ggplot(data = admissions_tble) + 
+  geom_bar(mapping = aes(x = year(admittime))) +
+  labs(x = "Admission year")
+```
+    - admission month  
+  
+```{r}
+#| eval: true
+ggplot(data = admissions_tble) + 
+  stat_count(mapping = aes(x = lubridate::month(admittime, label = TRUE))) +
+  labs(x = "Admission month")
+```
+    
+    - admission month day  
+    
+```{r}
+#| eval: true
+ggplot(data = admissions_tble) + 
+  stat_count(mapping = aes(x = mday(admittime))) +
+  labs(x = "Admission month day")
+```
+    - admission week day  
+```{r}
+#| eval: true
+ggplot(data = admissions_tble) + 
+  stat_count(mapping = aes(x = lubridate::wday(admittime, label = TRUE))) +
+  labs(x = "Admission week day") 
+```
+    - admission hour (anything unusual?)  
+    From the plot below it can be seen that the frequency is the highest at midnight and early morning at 7am maybe when the hospital opens.   
+```{r}
+#| eval: true
+ggplot(data = admissions_tble) + 
+  stat_count(mapping = aes(x = hour(admittime))) +
+  labs(x = "Admission hour")
+```
+    - admission minute (anything unusual?)  
+    - length of hospital stay (anything unusual?)   
     
 ## Q4. `patients` data
 
