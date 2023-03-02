@@ -257,21 +257,21 @@ loaded via a namespace (and not attached):
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(adm_base <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_c</span>(mimic_path,<span class="st">"/core/admissions.csv.gz"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  5.403   0.097   5.547 </code></pre>
+  5.226   0.079   5.327 </code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(adm_tidy <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">str_c</span>(mimic_path,<span class="st">"/core/admissions.csv.gz"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  1.450   0.821   0.826 </code></pre>
+  1.458   0.892   0.790 </code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(adm_table <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="fu">str_c</span>(mimic_path,<span class="st">"/core/admissions.csv.gz"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  0.470   0.148   0.665 </code></pre>
+  0.470   0.148   0.656 </code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
