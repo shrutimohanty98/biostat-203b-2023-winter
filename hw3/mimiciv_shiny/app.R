@@ -13,6 +13,10 @@ library(tidyverse)
 library(lubridate)
 library(DBI)
 library(bigrquery)
+library(ggplot2)
+library(datasets)
+
+
 
 demo_var1 = c("ethnicity", "language", "insurance", "marital_status", "gender")
 
@@ -27,13 +31,15 @@ ui <- fluidPage(
     sidebarPanel(
       selectInput("var", 
                   label = "Choose a variable for graphical summary",
-                  choices = c( "ethnicity",
-                               "language",
-                               "insurance",
-                               "marital_status",
-                               "gender",
-                               "Admission year", "Admission month",
-                              "Admission month day", "Admission week day",
+                  choices = c("ethnicity",
+                              "language",
+                              "insurance",
+                              "marital_status",
+                              "gender",
+                              "Admission year", 
+                              "Admission month",
+                              "Admission month day", 
+                              "Admission week day",
                               "Admission hour",
                               "Admission minute",
                               "Admission duration",
@@ -69,6 +75,7 @@ ui <- fluidPage(
     
     # Show a plot of the generated distribution
     mainPanel(
+      h2("Numerical and graphical summary of the variable"),
       plotOutput("distPlot")
     )
   )
@@ -78,19 +85,19 @@ ui <- fluidPage(
 server <- function(input, output) {
   icu = read_rds(
     "icu_cohort.rds")
-  
+# I am not able to get to display this table for numerical representation on the app
   output$table <- renderTable({
-    if(input$var %in% demo_var1)
-      icu %>%
-      group_by_("thirty_day_mort", input$var) %>%
-      summarize(n = n()) %>%
-      mutate(prop = n / sum(n)) %>%
-      select(-n) %>%
-      spread("thirty_day_mort", prop) 
+    if (input$var %in% demo_var1){
+        icu %>%
+        group_by_("thirty_day_mort", input$var) %>%
+        summarize(n = n()) %>%
+        mutate(prop = n / sum(n)) %>%
+        select(-n) %>%
+        spread("thirty_day_mort", prop)
+      } else FALSE
   })
   
     
-  
   output$distPlot <- renderPlot({
     if(input$var == "Admission year") {
       icu %>%
