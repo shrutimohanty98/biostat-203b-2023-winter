@@ -24,21 +24,20 @@ knitr:
 Display machine information:
 ```{r}
 #| eval: false
-
 sessionInfo()
 ```
 Load database libraries and the tidyverse frontend:
 ```{r}
-#| eval: false
-install.packages("splitTools")
-library(bigrquery)
+#| eval: true
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(tidymodels))
+suppressPackageStartupMessages(library(lubridate))
 library(dbplyr)
 library(DBI)
-library(lubridate)
-library(tidyverse)
-library(tidymodels)
 library(readr)
-library(dplyr)
+library(miceRanger)
+library(caret)
+library(magrittr)
 ```
 
 ## Predicting 30-day mortality
@@ -47,75 +46,119 @@ Using the ICU cohort `icu_cohort.rds` you built in Homework 3, develop at least 
 
 1. Partition data into 50% training set and 50% test set. Stratify partitioning according the 30-day mortality status.
 
-**Solution:** Data Pre-processing is performed in the transform function. Numeric columns are scaled, and character columns are factored. Thirdy_day_mort column is given the values 0 or 1 based on FALSE or TRUE. After that the tibble is partitioned into train and test sets based on 30-day mortality status in 0.5 ratios. 
+**Solution:**
+
 
 ```{r}
+#| eval: true
 icu_cohort <- readRDS("icu_cohort.rds")
 ```
 
+I am performing some pre-processing to remove missing values as my accuracy values were NA if I was using statistical models on the dataset directly. First I have identified variables with more than 10000 NAs. The variables to be discarded are deathtime, edregtime, edouttime, and dod. The outliers are replaced with NAs using the IQR rule. 
+
 ```{r}
-library(splitTools)
-set.seed(100)
-icu_cohort$thirty_day_mort <- 
-  ifelse(icu_cohort$thirty_day_mort == "TRUE" ,1 , 0)
-icu_transform <- transform(icu_cohort,
-                          gender = as.factor(gender), 
-                          marital_status = as.factor(marital_status),
-                          ethnicity = as.factor(ethnicity),
-                          thirty_day_mort = as.factor(thirty_day_mort))
+#| eval: true
+icu_cohort <- icu_cohort %>%
+  select_if(colSums(is.na(icu_cohort)) <= 5000) %>%
+  print(width = Inf)
 
-# convert non-numeric variables to factors and scale numeric variables
-icu_transform <- icu_transform %>%
-  mutate_if(is.character, as.factor) %>%
-  mutate_if(is.logical, as.factor) %>%
-  mutate_if(is.numeric, scale)
+replace_outliers_with_na <- function(x, factor = 1.5) {
+  qnt <- quantile(x, probs=c(0.25, 0.75), na.rm = TRUE)
+  h <- factor * IQR(x, na.rm = TRUE)
+  x[x < (qnt[1] - h) | x > (qnt[2] + h)] <- NA
+  return(x)
+}
+```
 
-sets <- partition(icu_transform$thirty_day_mort, p = c(train = 0.5, test = 0.5))
-icu_train <- icu_transform[sets$train, ]
-icu_test <- icu_transform[sets$test, ]
+```{r}
+icu_cohort <- icu_cohort %>% 
+  mutate_if(is.numeric, replace_outliers_with_na)
+summary(icu_cohort)
+```
+
+Next, I form the table with only the values that are needed for predicting the status of thirty_day_mort. 
+
+```{r}
+# choose the variables needed for prediction of mortality 
+variable = c("gender", "anchor_age", "marital_status", "ethnicity",
+             "thirty_day_mort")
+lab_item <- c(50912, 
+              50971, 
+              50983, 
+              50902, 
+              50882, 
+              51221, 
+              51301, 
+              50931)
+lab_item = paste("valuenum", lab_item, sep = "")
+vital_item <- c(220045, 
+                220181, 
+                220179, 
+                223761, 
+                220210)
+vital_item = paste("valuenum", vital_item, sep = "")
+all_vars = c(variable, lab_item, vital_item)
+icu_cohort <- icu_cohort %>%
+  select(all_of(all_vars)) %>%
+  print(width = Inf)
+```
+
+Next, I impute the missing values to complete the dataset. This solves the problems of facing NA in accuracy later on. 
+
+```{r}
+if (file.exists("icu_cohort_imputed.rds")) {
+  icu_cohort_imputed <- read_rds("icu_cohort_imputed.rds")
+} else {
+  parTime <- system.time(
+    icu_cohort_imputed <- miceRanger(
+      icu_cohort,
+      m = 1,
+      max.depth = 10,
+      returnModels = FALSE,
+      verbose = TRUE
+    )
+  )
+  icu_cohort_imputed %>%
+    write_rds("icu_cohort_imputed.rds")
+}
+```
+The imputed dataset is chosen using completeData for the rest of the assignment. 
+```{r}
+icu_cohort <- completeData(icu_cohort_imputed)
+icu_cohort <- icu_cohort[[1]]
+```
+
+Data partitioning is done using createDataPartition in a ratio of 0.5 for train and test. 
+
+```{r}
+set.seed(3456)
+index <- createDataPartition(icu_cohort$thirty_day_mort,
+                             p = 0.5, list = FALSE)
+icu_train <- icu_cohort[index, ]
+icu_test <- icu_cohort[-index, ]
 ```
 
 2. Train and tune the models using the training set.
 
 **Solution:**
+The first model we use for training is a logistic regression model. The fisher scoring iterations tell us how many iterations are required for the model to converge. 
 
 ```{r}
 # fit the model
-model_glm =
-  glm( thirty_day_mort ~ gender + anchor_age + marital_status + ethnicity +
-        valuenum51301 + valuenum50882 + valuenum51221 + valuenum50912 +
-        valuenum50971 + valuenum50983 + valuenum50902 +
-        valuenum50931 + valuenum220181 + valuenum220179 +
-        valuenum223761 + valuenum220210 + valuenum220045,
-      data = icu_train, family = binomial, na.action = "na.exclude")
-summary(model_glm)
+logstc_model <- glm(thirty_day_mort ~ ., icu_train, family = binomial)
+summary(logstc_model)
 ```
-```{r}
-#(1) logistic regression "glm"
-x_test <- model.matrix( ~-1 + gender + anchor_age + marital_status + ethnicity +
-        valuenum51301 + valuenum50882 + valuenum51221 + valuenum50912 +
-        valuenum50971 + valuenum50983 + valuenum50902 +
-        valuenum50931 + valuenum220181 + valuenum220179 +
-        valuenum223761 + valuenum220210 + valuenum220045, 
-        data = icu_test)
-```
-
+We then predict the probabilities in icu_test with greater than 0.5 being TRUE, and build a confusion matrix. 
 
 ```{r}
-# predict 30-day mortality using the model
-prob_logstc <- predict(model_glm, icu_test, type = "response", na.action = "na.action")
-# translate probabilities to predictions by threshold = 0.5
 
-predict_logstc <- ifelse(prob_logstc > 0.5, 1, 0)
-predict_logstc = factor(predict_logstc,levels=c("0","1"))
-# make confusion matrix
+prob_logstc <- predict(logstc_model, icu_test, type = "response")
+predict_logstc <- ifelse(prob_logstc > 0.5, TRUE, FALSE)
 table(observed = icu_test$thirty_day_mort, predicted = predict_logstc)
-icu_test
+cat('Accuracy of test set: ', mean(predict_logstc == icu_test$thirty_day_mort))
 ```
-```{r}
-# compute accuracy 
-cat('Test accuracy', mean(predict_logstc == icu_test$thirty_day_mort))
-```
+
+The Accuracy using a logistic regression model is 90.4\%. 
 
 
 3. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each model.

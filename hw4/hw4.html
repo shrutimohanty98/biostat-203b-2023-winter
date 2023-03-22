@@ -2646,15 +2646,15 @@ vertical-align: -.125em;
 </div>
 <p>Load database libraries and the tidyverse frontend:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;splitTools&quot;</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bigrquery)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dbplyr)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(tidyverse))</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(tidymodels))</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>(<span class="fu">library</span>(lubridate))</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dbplyr)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(miceRanger)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(caret)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(magrittr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="predicting-30-day-mortality" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="predicting-30-day-mortality"><span class="header-section-number">1</span> Predicting 30-day mortality</h2>
@@ -2662,32 +2662,413 @@ vertical-align: -.125em;
 <ol type="1">
 <li>Partition data into 50% training set and 50% test set. Stratify partitioning according the 30-day mortality status.</li>
 </ol>
-<p><strong>Solution:</strong> Data Pre-processing is performed in the transform function. Numeric columns are scaled, and character columns are factored. Thirdy_day_mort column is given the values 0 or 1 based on FALSE or TRUE. After that the tibble is partitioned into train and test sets based on 30-day mortality status in 0.5 ratios.</p>
+<p><strong>Solution:</strong></p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>icu_cohort <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">&quot;icu_cohort.rds&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>I am performing some pre-processing to remove missing values as my accuracy values were NA if I was using statistical models on the dataset directly. First I have identified variables with more than 10000 NAs. The variables to be discarded are deathtime, edregtime, edouttime, and dod. The outliers are replaced with NAs using the IQR rule.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(splitTools)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">100</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>icu_cohort<span class="sc">$</span>thirty_day_mort <span class="ot">&lt;-</span> </span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(icu_cohort<span class="sc">$</span>thirty_day_mort <span class="sc">==</span> <span class="st">&quot;TRUE&quot;</span> ,<span class="dv">1</span> , <span class="dv">0</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>icu_transform <span class="ot">&lt;-</span> <span class="fu">transform</span>(icu_cohort,</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>                          <span class="at">gender =</span> <span class="fu">as.factor</span>(gender), </span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>                          <span class="at">marital_status =</span> <span class="fu">as.factor</span>(marital_status),</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                          <span class="at">ethnicity =</span> <span class="fu">as.factor</span>(ethnicity),</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                          <span class="at">thirty_day_mort =</span> <span class="fu">as.factor</span>(thirty_day_mort))</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co"># convert non-numeric variables to factors and scale numeric variables</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">#icu_transform &lt;- icu_transform %&gt;% </span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co">#  mutate_if(is.numeric, scale)</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>sets <span class="ot">&lt;-</span> <span class="fu">partition</span>(icu_transform<span class="sc">$</span>thirty_day_mort, <span class="at">p =</span> <span class="fu">c</span>(<span class="at">train =</span> <span class="fl">0.5</span>, <span class="at">test =</span> <span class="fl">0.5</span>))</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>icu_train <span class="ot">&lt;-</span> icu_transform[sets<span class="sc">$</span>train, ]</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>icu_test <span class="ot">&lt;-</span> icu_transform[sets<span class="sc">$</span>test, ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>icu_cohort <span class="ot">&lt;-</span> icu_cohort <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(<span class="fu">colSums</span>(<span class="fu">is.na</span>(icu_cohort)) <span class="sc">&lt;=</span> <span class="dv">5000</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">width =</span> <span class="cn">Inf</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 53,150 × 37
+   subject_id intime               hadm_id  stay_id first_careunit
+        &lt;int&gt; &lt;dttm&gt;                 &lt;int&gt;    &lt;int&gt; &lt;chr&gt;         
+ 1   12776735 2200-07-12 00:33:00 20817525 34547665 Neuro Stepdown
+ 2   16256226 2150-12-20 16:09:08 20013290 39289362 Neuro Stepdown
+ 3   12974563 2138-11-13 23:30:01 29618057 32563675 Neuro Stepdown
+ 4   14609218 2174-06-28 21:13:00 20606189 34947848 Neuro Stepdown
+ 5   12687112 2162-05-31 18:08:45 26132667 37445058 Neuro Stepdown
+ 6   18190935 2115-11-12 23:23:32 21137829 34338402 Neuro Stepdown
+ 7   10404210 2161-03-03 18:30:00 22880512 30254828 Neuro Stepdown
+ 8   12552973 2135-09-21 18:12:03 21320643 30261549 Neuro Stepdown
+ 9   14303051 2175-11-20 01:02:00 26559537 30401486 Neuro Stepdown
+10   12347959 2140-07-11 17:54:14 22779073 30503984 Neuro Stepdown
+   last_careunit  outtime               los admittime          
+   &lt;chr&gt;          &lt;dttm&gt;              &lt;dbl&gt; &lt;dttm&gt;             
+ 1 Neuro Stepdown 2200-07-13 16:44:40 1.67  2200-07-11 22:46:00
+ 2 Neuro Stepdown 2150-12-21 14:58:40 0.951 2150-12-20 03:00:00
+ 3 Neuro Stepdown 2138-11-15 16:25:19 1.71  2138-11-13 01:07:00
+ 4 Neuro Stepdown 2174-07-05 17:01:32 6.83  2174-06-28 20:40:00
+ 5 Neuro Stepdown 2162-06-04 10:16:13 3.67  2162-05-31 15:36:00
+ 6 Neuro Stepdown 2115-11-15 18:06:26 2.78  2115-11-02 18:38:00
+ 7 Neuro Stepdown 2161-03-05 18:10:31 1.99  2161-03-03 17:45:00
+ 8 Neuro Stepdown 2135-09-23 12:56:46 1.78  2135-09-21 02:12:00
+ 9 Neuro Stepdown 2175-11-21 16:06:17 1.63  2175-11-20 00:08:00
+10 Neuro Stepdown 2140-07-19 13:01:05 7.80  2140-07-11 17:52:00
+   dischtime           admission_type              admission_location    
+   &lt;dttm&gt;              &lt;chr&gt;                       &lt;chr&gt;                 
+ 1 2200-07-19 12:00:00 OBSERVATION ADMIT           EMERGENCY ROOM        
+ 2 2150-12-21 14:50:00 SURGICAL SAME DAY ADMISSION PHYSICIAN REFERRAL    
+ 3 2138-11-15 15:53:00 OBSERVATION ADMIT           EMERGENCY ROOM        
+ 4 2174-07-05 16:45:00 OBSERVATION ADMIT           EMERGENCY ROOM        
+ 5 2162-06-04 10:16:00 OBSERVATION ADMIT           PHYSICIAN REFERRAL    
+ 6 2115-11-26 14:30:00 OBSERVATION ADMIT           TRANSFER FROM HOSPITAL
+ 7 2161-03-05 18:10:00 OBSERVATION ADMIT           EMERGENCY ROOM        
+ 8 2135-09-23 12:56:00 SURGICAL SAME DAY ADMISSION PHYSICIAN REFERRAL    
+ 9 2175-11-21 15:30:00 OBSERVATION ADMIT           EMERGENCY ROOM        
+10 2140-07-19 13:00:00 URGENT                      TRANSFER FROM HOSPITAL
+   discharge_location           insurance language marital_status
+   &lt;chr&gt;                        &lt;chr&gt;     &lt;chr&gt;    &lt;chr&gt;         
+ 1 SKILLED NURSING FACILITY     Medicare  ENGLISH  MARRIED       
+ 2 HOME                         Other     ENGLISH  SINGLE        
+ 3 HOME HEALTH CARE             Other     ENGLISH  WIDOWED       
+ 4 REHAB                        Other     ENGLISH  SINGLE        
+ 5 HOME                         Other     ENGLISH  SINGLE        
+ 6 CHRONIC/LONG TERM ACUTE CARE Other     ENGLISH  DIVORCED      
+ 7 HOME                         Other     ENGLISH  MARRIED       
+ 8 HOME                         Other     ENGLISH  MARRIED       
+ 9 HOME                         Other     ENGLISH  SINGLE        
+10 REHAB                        Other     ENGLISH  MARRIED       
+   ethnicity              hospital_expire_flag gender anchor_age anchor_year
+   &lt;chr&gt;                                 &lt;int&gt; &lt;chr&gt;       &lt;int&gt;       &lt;int&gt;
+ 1 OTHER                                     0 M              72        2192
+ 2 OTHER                                     0 F              49        2150
+ 3 WHITE                                     0 F              72        2138
+ 4 WHITE                                     0 F              69        2174
+ 5 BLACK/AFRICAN AMERICAN                    0 M              57        2156
+ 6 WHITE                                     0 F              57        2115
+ 7 HISPANIC/LATINO                           0 F              46        2161
+ 8 WHITE                                     0 F              48        2131
+ 9 WHITE                                     0 F              24        2175
+10 WHITE                                     0 F              49        2140
+   anchor_year_group age_at_admission valuenum51221 valuenum50971 valuenum50983
+   &lt;chr&gt;                        &lt;int&gt;         &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;
+ 1 2008 - 2010                     80          30.6           3.3           130
+ 2 2017 - 2019                     49          30.5           4             141
+ 3 2014 - 2016                     72          41.6           4.4           139
+ 4 2017 - 2019                     69          36             4.6           134
+ 5 2011 - 2013                     63          30             5             143
+ 6 2017 - 2019                     57          31.5           4.3           138
+ 7 2017 - 2019                     46          34.1           4.1           138
+ 8 2011 - 2013                     52          37.1           4             145
+ 9 2014 - 2016                     24          34.7           4.3           139
+10 2017 - 2019                     49          39.6           3.8           137
+   valuenum51301 valuenum50882 valuenum50902 valuenum50912 valuenum50931
+           &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;
+ 1           7.8            22            97           1             113
+ 2           3.5            21           108           0.5            99
+ 3          10.6            16           104           1              78
+ 4          12.1            23            98           0.5           106
+ 5           5.4            19           105           8.2           127
+ 6           9.2            26            98           0.4           135
+ 7           3.6            26           104           0.8            99
+ 8          14.7            22           106           0.8           157
+ 9           7.1            24           105           0.8            85
+10          20.1            20           101           0.7            98
+   valuenum223761 valuenum220179 valuenum220181 valuenum220210 valuenum220045
+            &lt;dbl&gt;          &lt;dbl&gt;          &lt;dbl&gt;          &lt;dbl&gt;          &lt;dbl&gt;
+ 1          102.              98             86             16             78
+ 2           98.4            111             72              5             91
+ 3           98.7            183            107             16             67
+ 4           98.3            162             99             12             74
+ 5           98              165             95             26             95
+ 6           98.6            132             97             23             96
+ 7           98.4            114             79             18             89
+ 8           98.4            144             99             23             71
+ 9           98.6            120             85             17             67
+10           99.5            140            117             12             72
+   thirty_day_mort
+   &lt;lgl&gt;          
+ 1 FALSE          
+ 2 FALSE          
+ 3 FALSE          
+ 4 FALSE          
+ 5 FALSE          
+ 6 FALSE          
+ 7 FALSE          
+ 8 FALSE          
+ 9 FALSE          
+10 FALSE          
+# … with 53,140 more rows</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>replace_outliers_with_na <span class="ot">&lt;-</span> <span class="cf">function</span>(x, <span class="at">factor =</span> <span class="fl">1.5</span>) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  qnt <span class="ot">&lt;-</span> <span class="fu">quantile</span>(x, <span class="at">probs=</span><span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.75</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  h <span class="ot">&lt;-</span> factor <span class="sc">*</span> <span class="fu">IQR</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  x[x <span class="sc">&lt;</span> (qnt[<span class="dv">1</span>] <span class="sc">-</span> h) <span class="sc">|</span> x <span class="sc">&gt;</span> (qnt[<span class="dv">2</span>] <span class="sc">+</span> h)] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(x)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>icu_cohort <span class="ot">&lt;-</span> icu_cohort <span class="sc">%&gt;%</span> </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.numeric, replace_outliers_with_na)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(icu_cohort)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   subject_id           intime                          hadm_id        
+ Min.   :10000032   Min.   :2110-01-11 10:16:06.00   Min.   :20000094  
+ 1st Qu.:12483760   1st Qu.:2132-11-03 21:59:53.25   1st Qu.:22478418  
+ Median :14991992   Median :2152-09-25 12:29:44.00   Median :24948788  
+ Mean   :14990135   Mean   :2152-10-26 05:18:41.84   Mean   :24976352  
+ 3rd Qu.:17497349   3rd Qu.:2172-10-29 04:56:08.75   3rd Qu.:27477545  
+ Max.   :19999987   Max.   :2211-05-01 06:59:19.00   Max.   :29999828  
+                                                                       
+    stay_id         first_careunit     last_careunit     
+ Min.   :30000153   Length:53150       Length:53150      
+ 1st Qu.:32466765   Class :character   Class :character  
+ Median :34987382   Mode  :character   Mode  :character  
+ Mean   :34984425                                        
+ 3rd Qu.:37487830                                        
+ Max.   :39999810                                        
+                                                         
+    outtime                            los       
+ Min.   :2110-01-12 17:17:47.00   Min.   :0.001  
+ 1st Qu.:2132-11-06 22:32:25.75   1st Qu.:1.034  
+ Median :2152-09-28 07:17:57.00   Median :1.695  
+ Mean   :2152-10-29 13:58:59.61   Mean   :2.139  
+ 3rd Qu.:2172-10-30 21:16:16.50   3rd Qu.:2.866  
+ Max.   :2211-05-10 22:51:06.00   Max.   :7.216  
+                                  NA&#39;s   :5280   
+   admittime                        dischtime                     
+ Min.   :2110-01-11 10:14:00.00   Min.   :2110-01-15 17:31:00.00  
+ 1st Qu.:2132-11-01 01:41:45.00   1st Qu.:2132-11-11 14:40:00.00  
+ Median :2152-09-24 06:45:00.00   Median :2152-10-03 05:40:00.00  
+ Mean   :2152-10-25 04:22:49.22   Mean   :2152-11-03 14:27:00.51  
+ 3rd Qu.:2172-10-27 23:30:45.00   3rd Qu.:2172-11-07 08:56:15.00  
+ Max.   :2211-05-01 06:57:00.00   Max.   :2211-05-12 17:54:00.00  
+                                                                  
+ admission_type     admission_location discharge_location  insurance        
+ Length:53150       Length:53150       Length:53150       Length:53150      
+ Class :character   Class :character   Class :character   Class :character  
+ Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+                                                                            
+                                                                            
+                                                                            
+                                                                            
+   language         marital_status      ethnicity         hospital_expire_flag
+ Length:53150       Length:53150       Length:53150       Min.   :0           
+ Class :character   Class :character   Class :character   1st Qu.:0           
+ Mode  :character   Mode  :character   Mode  :character   Median :0           
+                                                          Mean   :0           
+                                                          3rd Qu.:0           
+                                                          Max.   :0           
+                                                          NA&#39;s   :5515        
+    gender            anchor_age     anchor_year   anchor_year_group 
+ Length:53150       Min.   :18.00   Min.   :2109   Length:53150      
+ Class :character   1st Qu.:53.00   1st Qu.:2131   Class :character  
+ Mode  :character   Median :65.00   Median :2151   Mode  :character  
+                    Mean   :63.51   Mean   :2151                     
+                    3rd Qu.:77.00   3rd Qu.:2171                     
+                    Max.   :91.00   Max.   :2207                     
+                                                                     
+ age_at_admission valuenum51221   valuenum50971  valuenum50983  
+ Min.   : 18.00   Min.   :14.40   Min.   :2.60   Min.   :129.0  
+ 1st Qu.: 54.00   1st Qu.:28.10   1st Qu.:3.70   1st Qu.:136.0  
+ Median : 66.00   Median :32.60   Median :4.10   Median :139.0  
+ Mean   : 64.47   Mean   :32.69   Mean   :4.11   Mean   :138.7  
+ 3rd Qu.: 78.00   3rd Qu.:37.20   3rd Qu.:4.50   3rd Qu.:141.0  
+ Max.   :102.00   Max.   :51.00   Max.   :5.60   Max.   :148.0  
+                  NA&#39;s   :2277    NA&#39;s   :3684   NA&#39;s   :4120   
+ valuenum51301   valuenum50882   valuenum50902   valuenum50912  
+ Min.   : 0.00   Min.   :15.00   Min.   : 91.0   Min.   :0.000  
+ 1st Qu.: 7.50   1st Qu.:21.00   1st Qu.:101.0   1st Qu.:0.700  
+ Median :10.30   Median :23.00   Median :105.0   Median :0.900  
+ Mean   :10.97   Mean   :23.06   Mean   :104.8   Mean   :0.958  
+ 3rd Qu.:13.90   3rd Qu.:25.00   3rd Qu.:108.0   3rd Qu.:1.100  
+ Max.   :24.80   Max.   :31.00   Max.   :118.0   Max.   :2.200  
+ NA&#39;s   :4168    NA&#39;s   :4974    NA&#39;s   :3572    NA&#39;s   :6750   
+ valuenum50931   valuenum223761   valuenum220179  valuenum220181 
+ Min.   : 24.0   Min.   : 96.00   Min.   : 57.0   Min.   : 36.0  
+ 1st Qu.:102.0   1st Qu.: 97.70   1st Qu.:106.0   1st Qu.: 70.0  
+ Median :121.0   Median : 98.10   Median :122.0   Median : 80.0  
+ Mean   :127.3   Mean   : 98.15   Mean   :122.9   Mean   : 81.5  
+ 3rd Qu.:147.0   3rd Qu.: 98.60   3rd Qu.:139.0   3rd Qu.: 92.0  
+ Max.   :235.0   Max.   :100.30   Max.   :188.0   Max.   :127.0  
+ NA&#39;s   :5464    NA&#39;s   :4887     NA&#39;s   :1262    NA&#39;s   :1686   
+ valuenum220210  valuenum220045  thirty_day_mort
+ Min.   : 5.00   Min.   : 37.0   Mode :logical  
+ 1st Qu.:15.00   1st Qu.: 74.0   FALSE:47937    
+ Median :18.00   Median : 85.0   TRUE :5213     
+ Mean   :18.23   Mean   : 86.5                  
+ 3rd Qu.:21.00   3rd Qu.: 98.0                  
+ Max.   :32.00   Max.   :136.0                  
+ NA&#39;s   :1687    NA&#39;s   :991                    </code></pre>
+</div>
+</div>
+<p>Next, I form the table with only the values that are needed for predicting the status of thirty_day_mort.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># choose the variables needed for prediction of mortality </span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>variable <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;gender&quot;</span>, <span class="st">&quot;anchor_age&quot;</span>, <span class="st">&quot;marital_status&quot;</span>, <span class="st">&quot;ethnicity&quot;</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>             <span class="st">&quot;thirty_day_mort&quot;</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>lab_item <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">50912</span>, </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>              <span class="dv">50971</span>, </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>              <span class="dv">50983</span>, </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>              <span class="dv">50902</span>, </span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>              <span class="dv">50882</span>, </span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>              <span class="dv">51221</span>, </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>              <span class="dv">51301</span>, </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>              <span class="dv">50931</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>lab_item <span class="ot">=</span> <span class="fu">paste</span>(<span class="st">&quot;valuenum&quot;</span>, lab_item, <span class="at">sep =</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>vital_item <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">220045</span>, </span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>                <span class="dv">220181</span>, </span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>                <span class="dv">220179</span>, </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>                <span class="dv">223761</span>, </span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>                <span class="dv">220210</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>vital_item <span class="ot">=</span> <span class="fu">paste</span>(<span class="st">&quot;valuenum&quot;</span>, vital_item, <span class="at">sep =</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>all_vars <span class="ot">=</span> <span class="fu">c</span>(variable, lab_item, vital_item)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>icu_cohort <span class="ot">&lt;-</span> icu_cohort <span class="sc">%&gt;%</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">all_of</span>(all_vars)) <span class="sc">%&gt;%</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">width =</span> <span class="cn">Inf</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 53,150 × 18
+   gender anchor_age marital_status ethnicity              thirty_day_mort
+   &lt;chr&gt;       &lt;int&gt; &lt;chr&gt;          &lt;chr&gt;                  &lt;lgl&gt;          
+ 1 M              72 MARRIED        OTHER                  FALSE          
+ 2 F              49 SINGLE         OTHER                  FALSE          
+ 3 F              72 WIDOWED        WHITE                  FALSE          
+ 4 F              69 SINGLE         WHITE                  FALSE          
+ 5 M              57 SINGLE         BLACK/AFRICAN AMERICAN FALSE          
+ 6 F              57 DIVORCED       WHITE                  FALSE          
+ 7 F              46 MARRIED        HISPANIC/LATINO        FALSE          
+ 8 F              48 MARRIED        WHITE                  FALSE          
+ 9 F              24 SINGLE         WHITE                  FALSE          
+10 F              49 MARRIED        WHITE                  FALSE          
+   valuenum50912 valuenum50971 valuenum50983 valuenum50902 valuenum50882
+           &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;
+ 1           1             3.3           130            97            22
+ 2           0.5           4             141           108            21
+ 3           1             4.4           139           104            16
+ 4           0.5           4.6           134            98            23
+ 5          NA             5             143           105            19
+ 6           0.4           4.3           138            98            26
+ 7           0.8           4.1           138           104            26
+ 8           0.8           4             145           106            22
+ 9           0.8           4.3           139           105            24
+10           0.7           3.8           137           101            20
+   valuenum51221 valuenum51301 valuenum50931 valuenum220045 valuenum220181
+           &lt;dbl&gt;         &lt;dbl&gt;         &lt;dbl&gt;          &lt;dbl&gt;          &lt;dbl&gt;
+ 1          30.6           7.8           113             78             86
+ 2          30.5           3.5            99             91             72
+ 3          41.6          10.6            78             67            107
+ 4          36            12.1           106             74             99
+ 5          30             5.4           127             95             95
+ 6          31.5           9.2           135             96             97
+ 7          34.1           3.6            99             89             79
+ 8          37.1          14.7           157             71             99
+ 9          34.7           7.1            85             67             85
+10          39.6          20.1            98             72            117
+   valuenum220179 valuenum223761 valuenum220210
+            &lt;dbl&gt;          &lt;dbl&gt;          &lt;dbl&gt;
+ 1             98           NA               16
+ 2            111           98.4              5
+ 3            183           98.7             16
+ 4            162           98.3             12
+ 5            165           98               26
+ 6            132           98.6             23
+ 7            114           98.4             18
+ 8            144           98.4             23
+ 9            120           98.6             17
+10            140           99.5             12
+# … with 53,140 more rows</code></pre>
+</div>
+</div>
+<p>Next, I impute the missing values to complete the dataset. This solves the problems of facing NA in accuracy later on.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(<span class="st">&quot;icu_cohort_imputed.rds&quot;</span>)) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  icu_cohort_imputed <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">&quot;icu_cohort_imputed.rds&quot;</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  parTime <span class="ot">&lt;-</span> <span class="fu">system.time</span>(</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    icu_cohort_imputed <span class="ot">&lt;-</span> <span class="fu">miceRanger</span>(</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>      icu_cohort,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">m =</span> <span class="dv">1</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">max.depth =</span> <span class="dv">10</span>,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">returnModels =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">verbose =</span> <span class="cn">TRUE</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  icu_cohort_imputed <span class="sc">%&gt;%</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">write_rds</span>(<span class="st">&quot;icu_cohort_imputed.rds&quot;</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The imputed dataset is chosen using completeData for the rest of the assignment.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>icu_cohort <span class="ot">&lt;-</span> <span class="fu">completeData</span>(icu_cohort_imputed)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>icu_cohort <span class="ot">&lt;-</span> icu_cohort[[<span class="dv">1</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Data partitioning is done using createDataPartition in a ratio of 0.5 for train and test.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">3456</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>index <span class="ot">&lt;-</span> <span class="fu">createDataPartition</span>(icu_cohort<span class="sc">$</span>thirty_day_mort,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                             <span class="at">p =</span> <span class="fl">0.5</span>, <span class="at">list =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>icu_train <span class="ot">&lt;-</span> icu_cohort[index, ]</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>icu_test <span class="ot">&lt;-</span> icu_cohort[<span class="sc">-</span>index, ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <ol start="2" type="1">
-<li><p>Train and tune the models using the training set.</p></li>
-<li><p>Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each model.</p></li>
+<li>Train and tune the models using the training set.</li>
+</ol>
+<p><strong>Solution:</strong> The first model we use for training is a logistic regression model. The fisher scoring iterations tell us how many iterations are required for the model to converge.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># fit the model</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>logstc_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(thirty_day_mort <span class="sc">~</span> ., icu_train, <span class="at">family =</span> binomial)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(logstc_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = thirty_day_mort ~ ., family = binomial, data = icu_train)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-2.0930  -0.4513  -0.3207  -0.2259   3.0623  
+
+Coefficients:
+                                  Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)                     10.6527572  2.8767658   3.703 0.000213 ***
+genderM                         -0.2047806  0.0482374  -4.245 2.18e-05 ***
+anchor_age                       0.0269874  0.0016476  16.380  &lt; 2e-16 ***
+marital_statusMARRIED           -0.0997880  0.0856070  -1.166 0.243755    
+marital_statusSINGLE            -0.0290357  0.0910442  -0.319 0.749788    
+marital_statusWIDOWED           -0.2115849  0.0983623  -2.151 0.031470 *  
+ethnicityASIAN                  -0.2524204  0.4836205  -0.522 0.601713    
+ethnicityBLACK/AFRICAN AMERICAN -0.6090430  0.4727491  -1.288 0.197641    
+ethnicityHISPANIC/LATINO        -0.4201680  0.4848997  -0.867 0.386213    
+ethnicityOTHER                  -0.4684378  0.4796462  -0.977 0.328751    
+ethnicityUNABLE TO OBTAIN        0.5623565  0.4904553   1.147 0.251547    
+ethnicityUNKNOWN                 0.5542924  0.4685954   1.183 0.236857    
+ethnicityWHITE                  -0.4052092  0.4665717  -0.868 0.385130    
+valuenum50912                    0.7744642  0.0550144  14.077  &lt; 2e-16 ***
+valuenum50971                   -0.0489103  0.0396160  -1.235 0.216975    
+valuenum50983                    0.0798290  0.0078248  10.202  &lt; 2e-16 ***
+valuenum50902                   -0.0764335  0.0058166 -13.141  &lt; 2e-16 ***
+valuenum50882                   -0.1230602  0.0073748 -16.687  &lt; 2e-16 ***
+valuenum51221                   -0.0092176  0.0036502  -2.525 0.011561 *  
+valuenum51301                    0.0301078  0.0045230   6.657 2.80e-11 ***
+valuenum50931                    0.0034966  0.0005825   6.003 1.94e-09 ***
+valuenum220045                   0.0108788  0.0012911   8.426  &lt; 2e-16 ***
+valuenum220181                   0.0022637  0.0020445   1.107 0.268205    
+valuenum220179                  -0.0099527  0.0014406  -6.909 4.88e-12 ***
+valuenum223761                  -0.1685001  0.0276973  -6.084 1.18e-09 ***
+valuenum220210                   0.0483168  0.0044830  10.778  &lt; 2e-16 ***
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 17055  on 26575  degrees of freedom
+Residual deviance: 14524  on 26550  degrees of freedom
+AIC: 14576
+
+Number of Fisher Scoring iterations: 6</code></pre>
+</div>
+</div>
+<p>We then predict the probabilities in icu_test with greater than 0.5 being TRUE, and build a confusion matrix.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>prob_logstc <span class="ot">&lt;-</span> <span class="fu">predict</span>(logstc_model, icu_test, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>predict_logstc <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(prob_logstc <span class="sc">&gt;</span> <span class="fl">0.5</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(<span class="at">observed =</span> icu_test<span class="sc">$</span>thirty_day_mort, <span class="at">predicted =</span> predict_logstc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        predicted
+observed FALSE  TRUE
+   FALSE 23832   136
+   TRUE   2412   194</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&#39;Accuracy of test set: &#39;</span>, <span class="fu">mean</span>(predict_logstc <span class="sc">==</span> icu_test<span class="sc">$</span>thirty_day_mort))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Accuracy of test set:  0.9041168</code></pre>
+</div>
+</div>
+<p>The Accuracy using a logistic regression model is 90.4%.</p>
+<ol start="3" type="1">
+<li>Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each model.</li>
 </ol>
 </section>
 
