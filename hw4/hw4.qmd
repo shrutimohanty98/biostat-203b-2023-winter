@@ -54,7 +54,7 @@ Using the ICU cohort `icu_cohort.rds` you built in Homework 3, develop at least 
 icu_cohort <- readRDS("icu_cohort.rds")
 ```
 
-I am performing some pre-processing to remove missing values as my accuracy values were NA if I was using statistical models on the dataset directly. First I have identified variables with more than 10000 NAs. The variables to be discarded are deathtime, edregtime, edouttime, and dod. The outliers are replaced with NAs using the IQR rule. 
+I am performing some pre-processing to remove missing values as my accuracy values were NA if I was using statistical models on the dataset directly. First I have identified variables with more than 5000 NAs. The variables to be discarded are deathtime, edregtime, edouttime, and dod. The outliers are replaced with NAs using the IQR rule. 
 
 ```{r}
 #| eval: true
@@ -79,28 +79,21 @@ summary(icu_cohort)
 Next, I form the table with only the values that are needed for predicting the status of thirty_day_mort. 
 
 ```{r}
-# choose the variables needed for prediction of mortality 
-variable = c("gender", "anchor_age", "marital_status", "ethnicity",
-             "thirty_day_mort")
-lab_item <- c(50912, 
-              50971, 
-              50983, 
-              50902, 
-              50882, 
-              51221, 
-              51301, 
-              50931)
-lab_item = paste("valuenum", lab_item, sep = "")
-vital_item <- c(220045, 
-                220181, 
-                220179, 
-                223761, 
-                220210)
-vital_item = paste("valuenum", vital_item, sep = "")
-all_vars = c(variable, lab_item, vital_item)
+# Choose the variables needed for prediction of mortality
+variables <- c("gender", "anchor_age", "marital_status", "ethnicity", "thirty_day_mort")
+
+lab_item <- c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)
+lab_item <- paste("valuenum", lab_item, sep = "")
+
+vital_item <- c(220045, 220181, 220179, 223761, 220210)
+vital_item <- paste("valuenum", vital_item, sep = "")
+
+all_vars <- c(variables, lab_item, vital_item)
+
 icu_cohort <- icu_cohort %>%
   select(all_of(all_vars)) %>%
   print(width = Inf)
+
 ```
 
 Next, I impute the missing values to complete the dataset. This solves the problems of facing NA in accuracy later on. 
@@ -109,29 +102,33 @@ Next, I impute the missing values to complete the dataset. This solves the probl
 if (file.exists("icu_cohort_imputed.rds")) {
   icu_cohort_imputed <- read_rds("icu_cohort_imputed.rds")
 } else {
-  parTime <- system.time(
-    icu_cohort_imputed <- miceRanger(
-      icu_cohort,
-      m = 1,
-      max.depth = 10,
-      returnModels = FALSE,
-      verbose = TRUE
-    )
+  icu_cohort_imputed <- miceRanger(
+    icu_cohort,
+    m = 1,
+    max.depth = 10,
+    returnModels = FALSE,
+    verbose = TRUE
   )
-  icu_cohort_imputed %>%
-    write_rds("icu_cohort_imputed.rds")
+  icu_cohort_imputed %>% write_rds("icu_cohort_imputed.rds")
 }
 ```
+
 The imputed dataset is chosen using completeData for the rest of the assignment. 
 ```{r}
 icu_cohort <- completeData(icu_cohort_imputed)
 icu_cohort <- icu_cohort[[1]]
+icu_cohort
 ```
 
 Data partitioning is done using createDataPartition in a ratio of 0.5 for train and test. 
 
 ```{r}
-set.seed(3456)
+set.seed(10)
+icu_cohort$thirty_day_mort= as.factor(icu_cohort$thirty_day_mort)
+icu_cohort <- icu_cohort %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate_if(is.logical, as.factor) %>%
+  mutate_if(is.numeric, scale)
 index <- createDataPartition(icu_cohort$thirty_day_mort,
                              p = 0.5, list = FALSE)
 icu_train <- icu_cohort[index, ]
@@ -152,13 +149,71 @@ We then predict the probabilities in icu_test with greater than 0.5 being TRUE, 
 
 ```{r}
 
-prob_logstc <- predict(logstc_model, icu_test, type = "response")
-predict_logstc <- ifelse(prob_logstc > 0.5, TRUE, FALSE)
-table(observed = icu_test$thirty_day_mort, predicted = predict_logstc)
-cat('Accuracy of test set: ', mean(predict_logstc == icu_test$thirty_day_mort))
+prob_lg <- predict(logstc_model, icu_test, type = "response")
+predict_lg <- ifelse(prob_lg > 0.5, TRUE, FALSE)
+table(observed = icu_test$thirty_day_mort, predicted = predict_lg)
+cat('Accuracy of test set with logistic regression: ', mean(predict_lg == icu_test$thirty_day_mort))
 ```
 
-The Accuracy using a logistic regression model is 90.4\%. 
+**The Accuracy using a logistic regression model is 90.36\%.**
 
+The next analytical method I am using is a randomforest. This is a tree based model, and the randomForest package is used. 
+
+```{r}
+library(randomForest)
+model_rf <- randomForest(icu_train$thirty_day_mort ~ ., data = icu_train, ntree= 100)
+```
+
+```{r}
+prob_rf <- predict(model_rf, icu_test, type = "prob")
+predict_rf <- predict(model_rf, icu_test)
+
+table(observed = icu_test$thirty_day_mort, predicted = predict_rf)
+cat('Accuracy of test set with random forest: ', mean(predict_rf == icu_test$thirty_day_mort))
+```
+**The Accuracy using a random forest model is 90.41\%.** Increasing the number of trees beyond 100 doesn't change the accuracy a lot. 
+
+The third analytical model I used is a gradient boosting model. The gbm package has been used for this. 
+```{r}
+library(gbm)
+
+icu_train$thirty_day_mort <- as.numeric(icu_train$thirty_day_mort)
+icu_test$thirty_day_mort <- as.numeric(icu_test$thirty_day_mort)
+# Train the boosting model
+boost_model <- gbm(thirty_day_mort ~ ., data = icu_train, n.trees = 100, interaction.depth = 3, 
+                   distribution = 'gaussian')
+
+```
+
+
+```{r}
+# Make predictions on the testing data and obtain prediction probabilities
+probabilities <- predict(boost_model, icu_test, type = "response")
+predict_gbm <- ifelse(probabilities > 0.5, TRUE, FALSE)
+cat('Accuracy of test set with boosting: ', mean(predict_gbm == icu_test$thirty_day_mort ))
+```
+
+**The Accuracy using a gradient boosting model is 90.19\%.** All 3 analytical models gave me comparable performance accuracies on the test set around 90\%. 
 
 3. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each model.
+
+**Solution:**
+The accuracy for each model has been reported above. The area under ROC curve is shown below. From the ROC we can conclude that all 3 models have a very similar performance. The higher the curve is to the left of the graph, the better it is. The other models that could be used to improve accuracy are SVM, or neural net. I also believe including a greater partition for training set might improve the results, or performing further imputation. 
+
+```{r}
+# Create ROC curves
+library(ROCR)
+glm_pred_roc <- prediction(prob_lg, icu_test$thirty_day_mort)
+glm_perf <- performance(glm_pred_roc, "tpr", "fpr")
+rf_pred_roc <- prediction(prob_rf[,2], icu_test$thirty_day_mort)
+rf_perf <- performance(rf_pred_roc, "tpr", "fpr")
+gbm_pred_roc <- prediction(probabilities, icu_test$thirty_day_mort)
+gbm_perf <- performance(gbm_pred_roc, "tpr", "fpr")
+
+
+# Plot ROC curves
+plot(gbm_perf, col = "red", main = "ROC Curves", xlab = "False Positive Rate", ylab = "True Positive Rate")
+plot(glm_perf, col = "blue", add = TRUE)
+plot(rf_perf, col = "green", add = TRUE)
+legend("bottomright", c("Gradient Boosting", "Logistic Regression", "Random Forest"), col = c("red", "blue", "green"), lty = 1)
+```
